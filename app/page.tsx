@@ -78,6 +78,7 @@ export default function Home() {
   const [teams, setTeams] = useState<Team[]>([]);
   const [matches, setMatches] = useState<Match[]>([]);
   const [miniGames, setMiniGames] = useState<MiniGameMatch[]>([]);
+  const [semifinalMatches, setSemifinalMatches] = useState<SemifinalMatch[]>([]);
   const [semifinalMatch, setSemifinalMatch] = useState<SemifinalMatch | null>(null);
   const [finalMatch, setFinalMatch] = useState<FinalMatch | null>(null);
   const [champion, setChampion] = useState<Team | null>(null);
@@ -125,12 +126,17 @@ export default function Home() {
     } else {
       for (let i = 0; i < teamList.length; i++) {
         for (let j = i + 1; j < teamList.length; j++) {
+          // Randomize home/away assignment
+          const isOrderFlipped = Math.random() < 0.5;
+          const t1 = isOrderFlipped ? teamList[j] : teamList[i];
+          const t2 = isOrderFlipped ? teamList[i] : teamList[j];
+
           matches.push({
             id: matchId++,
-            team1: teamList[i].id,
-            team2: teamList[j].id,
-            team1Name: teamList[i].teamName,
-            team2Name: teamList[j].teamName,
+            team1: t1.id,
+            team2: t2.id,
+            team1Name: t1.teamName,
+            team2Name: t2.teamName,
             score: { t1: 0, t2: 0 },
             winner: null,
             finished: false,
@@ -138,7 +144,17 @@ export default function Home() {
         }
       }
     }
-    return matches;
+    // Fisher-Yates shuffle
+    for (let i = matches.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [matches[i], matches[j]] = [matches[j], matches[i]];
+    }
+
+    // Re-assign IDs after shuffle to keep them sequential
+    return matches.map((match, index) => ({
+      ...match,
+      id: index + 1
+    }));
   };
 
   const handleScoreSubmit = (matchId: number, score: { t1: number; t2: number }) => {
@@ -260,11 +276,11 @@ export default function Home() {
   const areAllTeamsCompletelyTied = (): boolean => {
     const rankings = getRankings();
     if (rankings.length !== 3) return false;
-    
+
     const r0 = rankings[0];
     const r1 = rankings[1];
     const r2 = rankings[2];
-    
+
     return (
       r0.wins === r1.wins &&
       r1.wins === r2.wins &&
@@ -278,7 +294,7 @@ export default function Home() {
   const generateMiniGames = (): MiniGameMatch[] => {
     const sorted = getRankings();
     const miniGameMatches: MiniGameMatch[] = [];
-    
+
     // Match 1: Team 1 vs Team 2
     miniGameMatches.push({
       id: 1,
@@ -290,7 +306,7 @@ export default function Home() {
       winner: null,
       finished: false,
     });
-    
+
     // Match 2: Team 2 vs Team 3
     miniGameMatches.push({
       id: 2,
@@ -302,7 +318,7 @@ export default function Home() {
       winner: null,
       finished: false,
     });
-    
+
     // Match 3: Team 1 vs Team 3
     miniGameMatches.push({
       id: 3,
@@ -314,7 +330,7 @@ export default function Home() {
       winner: null,
       finished: false,
     });
-    
+
     return miniGameMatches;
   };
 
@@ -338,7 +354,7 @@ export default function Home() {
   const handle2TeamLogic = () => {
     const rankings = getRankings();
     const winTarget = matchFormat === 'bestOf5' ? 3 : 2;
-    
+
     // Check if one team has won the series
     if (rankings[0].wins === winTarget) {
       setChampion(rankings[0].team);
@@ -358,6 +374,7 @@ export default function Home() {
     setMatches([]);
     setMiniGames([]);
     setSemifinalMatch(null);
+    setSemifinalMatches([]);
     setFinalMatch(null);
     setChampion(null);
     setMatchFormat(null);
@@ -408,9 +425,7 @@ export default function Home() {
             onScoreSubmit={handleScoreSubmit}
             allMatchesFinished={allMatchesFinished}
             onContinue={() => {
-              const rankings = getRankings();
-              setChampion(rankings[0].team);
-              setScreen('winner');
+              setScreen('finals');
             }}
             onBack={() => setScreen('teamInput')}
             teamCount={teamCount}
@@ -521,6 +536,8 @@ export default function Home() {
             getRankings={getRankings}
             miniGames={miniGames}
             onSemifinalSubmit={(semifinal) => setSemifinalMatch(semifinal)}
+            semifinalMatches={semifinalMatches}
+            onSemifinalMatchesSubmit={(matches) => setSemifinalMatches(matches)}
             onFinalSubmit={(final) => setFinalMatch(final)}
           />
         )}
@@ -532,6 +549,7 @@ export default function Home() {
             matches={matches}
             teamCount={teamCount}
             semifinalMatch={semifinalMatch}
+            semifinalMatches={semifinalMatches}
             finalMatch={finalMatch}
           />
         )}

@@ -2,7 +2,7 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Team, Match } from '@/app/page';
+import { Team, Match, SemifinalMatch } from '@/app/page';
 import TournamentStandings from './tournament-standings';
 import { useState } from 'react';
 
@@ -13,6 +13,7 @@ interface WinnerScreenProps {
   matches: Match[];
   teamCount: number;
   semifinalMatch?: any;
+  semifinalMatches?: SemifinalMatch[];
   finalMatch?: any;
 }
 
@@ -23,6 +24,7 @@ export default function WinnerScreen({
   matches,
   teamCount,
   semifinalMatch,
+  semifinalMatches,
   finalMatch,
 }: WinnerScreenProps) {
   const [showStandings, setShowStandings] = useState(false);
@@ -31,7 +33,7 @@ export default function WinnerScreen({
     <div className="space-y-6">
       {!showStandings ? (
         <div className="flex items-center justify-center min-h-[80vh]">
-          <div className="text-center space-y-6 max-w-md">
+          <div className="text-center space-y-6 max-w-md w-full">
             <div className="text-6xl animate-bounce">🏆</div>
 
             <Card className="border-2 border-yellow-400 bg-yellow-50">
@@ -74,7 +76,30 @@ export default function WinnerScreen({
               </Card>
             )}
 
-            {semifinalMatch && (
+            {semifinalMatches && semifinalMatches.length > 0 && (
+              <Card className="border-blue-200 bg-blue-50">
+                <CardHeader className="py-3">
+                  <CardTitle className="text-base text-blue-800">Semifinal Results</CardTitle>
+                </CardHeader>
+                <CardContent className="pb-3 space-y-2">
+                  {semifinalMatches.map((match) => (
+                    <div key={match.id} className="flex justify-between items-center text-sm">
+                      <span className={match.winner === match.team1 ? 'font-bold' : ''}>
+                        {match.team1Name}
+                      </span>
+                      <span className="font-mono font-bold mx-2">
+                        {match.score.t1} - {match.score.t2}
+                      </span>
+                      <span className={match.winner === match.team2 ? 'font-bold' : ''}>
+                        {match.team2Name}
+                      </span>
+                    </div>
+                  ))}
+                </CardContent>
+              </Card>
+            )}
+
+            {semifinalMatch && !semifinalMatches?.length && (
               <Card className="border-blue-200 bg-blue-50">
                 <CardHeader className="py-3">
                   <CardTitle className="text-base text-blue-800">Semifinal Match Result</CardTitle>
@@ -128,6 +153,7 @@ export default function WinnerScreen({
             champion={champion}
             teamCount={teamCount}
             semifinalMatch={semifinalMatch}
+            semifinalMatches={semifinalMatches}
             finalMatch={finalMatch}
           />
 

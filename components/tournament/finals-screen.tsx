@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Team, Match } from '@/app/page';
+import { Team, Match, SemifinalMatch } from '@/app/page';
 
 interface FinalsScreenProps {
   teams: Team[];
@@ -21,6 +21,8 @@ interface FinalsScreenProps {
   }>;
   miniGames?: any[];
   onSemifinalSubmit?: (semifinal: any) => void;
+  semifinalMatches?: SemifinalMatch[];
+  onSemifinalMatchesSubmit?: (matches: SemifinalMatch[]) => void;
   onFinalSubmit?: (final: any) => void;
 }
 
@@ -33,14 +35,62 @@ export default function FinalsScreen({
   getRankings,
   miniGames,
   onSemifinalSubmit,
+  semifinalMatches = [],
+  onSemifinalMatchesSubmit,
   onFinalSubmit,
 }: FinalsScreenProps) {
   const [finalMatch, setFinalMatch] = useState<Match | null>(null);
   const [tempScore, setTempScore] = useState<{ t1: string; t2: string }>({ t1: '', t2: '' });
+  const [semiScores, setSemiScores] = useState<Record<number, { t1: string; t2: string }>>({});
 
   const rankings = getRankings();
 
+  // Initialize 4-team semifinals if needed
+  useEffect(() => {
+    if (teamCount >= 4 && semifinalMatches.length === 0 && onSemifinalMatchesSubmit) {
+      // Create 1v4 and 2v3 matches
+      const match1: SemifinalMatch = {
+        id: 2001,
+        team1: rankings[0].team.id,
+        team2: rankings[3].team.id,
+        team1Name: rankings[0].team.teamName,
+        team2Name: rankings[3].team.teamName,
+        score: { t1: 0, t2: 0 },
+        winner: null,
+        finished: false,
+      };
+      const match2: SemifinalMatch = {
+        id: 2002,
+        team1: rankings[1].team.id,
+        team2: rankings[2].team.id,
+        team1Name: rankings[1].team.teamName,
+        team2Name: rankings[2].team.teamName,
+        score: { t1: 0, t2: 0 },
+        winner: null,
+        finished: false,
+      };
+      onSemifinalMatchesSubmit([match1, match2]);
+    }
+  }, [teamCount, semifinalMatches.length, rankings, onSemifinalMatchesSubmit]);
+
   const determineFinalists = () => {
+    if (teamCount >= 4) {
+      // For 4+ teams, we rely on the semifinal matches
+      if (semifinalMatches.length === 2 && semifinalMatches.every(m => m.finished)) {
+        const winner1 = teams.find(t => t.id === semifinalMatches[0].winner);
+        const winner2 = teams.find(t => t.id === semifinalMatches[1].winner);
+        if (winner1 && winner2) {
+          return {
+            needsSemifinal: false, // Semis are done
+            finalist1: winner1,
+            finalist2: winner2,
+            source: 'semifinals'
+          };
+        }
+      }
+      return { needsSemifinal: true };
+    }
+
     if (teamCount === 3) {
       const firstPlaceWins = rankings[0].wins;
       const secondPlaceWins = rankings[1].wins;
@@ -52,6 +102,7 @@ export default function FinalsScreen({
           needsSemifinal: false,
           finalist1: rankings[0].team,
           finalist2: rankings.find((r) => r.wins === 1)!.team,
+          source: 'direct'
         };
       } else if (firstPlaceWins === 1 && secondPlaceWins === 1 && thirdPlaceWins === 1) {
         // All 1-1: Need semifinals
@@ -60,6 +111,7 @@ export default function FinalsScreen({
           semifinalTeam1: rankings[1].team,
           semifinalTeam2: rankings[2].team,
           topSeed: rankings[0].team,
+          source: '3-way-tie'
         };
       }
     }
@@ -69,6 +121,7 @@ export default function FinalsScreen({
 
   const finalists = determineFinalists();
 
+  // Initialize Final Match
   useEffect(() => {
     if (
       !finalMatch &&
@@ -92,7 +145,89 @@ export default function FinalsScreen({
     }
   }, [finalMatch, finalists, onFinalSubmit]);
 
-  if (!finalMatch && finalists?.needsSemifinal) {
+  // 4-Team Semifinals View
+  if (teamCount >= 4 && finalists?.needsSemifinal) {
+    return (
+      <div className="space-y-4">
+        <div className="flex items-center justify-between mb-6">
+          <h1 className="text-3xl font-bold text-green-700">Playoffs - Semifinals</h1>
+          <Button variant="outline" onClick={onBack}>
+            Back
+          </Button>
+        </div>
+
+        <div className="grid gap-4 md:grid-cols-2">
+          {semifinalMatches.map((match) => (
+            <Card key={match.id} className={match.finished ? 'opacity-70 bg-gray-50' : ''}>
+              <CardHeader className="bg-green-50 py-3">
+                <CardTitle className="text-base">
+                  {match.id === 2001 ? 'Semi 1 (1st vs 4th)' : 'Semi 2 (2nd vs 3rd)'}
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="pt-4">
+                <div className="mb-2 text-sm font-medium text-center">
+                  {match.team1Name} vs {match.team2Name}
+                </div>
+                {match.finished ? (
+                  <div className="text-center">
+                    <p className="text-green-700 font-bold">
+                      Winner: {match.winner === match.team1 ? match.team1Name : match.team2Name}
+                    </p>
+                    <p className="text-xs text-gray-500">Score: {match.score.t1} - {match.score.t2}</p>
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    <div className="grid grid-cols-2 gap-2">
+                      <Input
+                        type="number"
+                        placeholder={match.team1Name}
+                        value={semiScores[match.id]?.t1 ?? ''}
+                        onChange={(e) => setSemiScores(prev => ({
+                          ...prev,
+                          [match.id]: { ...prev[match.id], t1: e.target.value }
+                        }))}
+                      />
+                      <Input
+                        type="number"
+                        placeholder={match.team2Name}
+                        value={semiScores[match.id]?.t2 ?? ''}
+                        onChange={(e) => setSemiScores(prev => ({
+                          ...prev,
+                          [match.id]: { ...prev[match.id], t2: e.target.value }
+                        }))}
+                      />
+                    </div>
+                    <Button
+                      className="w-full bg-green-600 hover:bg-green-700"
+                      onClick={() => {
+                        const s = semiScores[match.id];
+                        if (!s?.t1 || !s?.t2) return;
+                        const t1 = parseInt(s.t1);
+                        const t2 = parseInt(s.t2);
+                        const winnerId = t1 > t2 ? match.team1 : match.team2;
+
+                        const updatedMatches = semifinalMatches.map(m =>
+                          m.id === match.id
+                            ? { ...m, score: { t1, t2 }, winner: winnerId, finished: true }
+                            : m
+                        );
+                        onSemifinalMatchesSubmit?.(updatedMatches);
+                      }}
+                    >
+                      Submit
+                    </Button>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  // 3-Team Semifinal View (Existing Logic)
+  if (teamCount === 3 && !finalMatch && finalists?.needsSemifinal && finalists.source === '3-way-tie') {
     const topSeed = finalists.topSeed!;
     const semifinalTeam1 = finalists.semifinalTeam1!;
     const semifinalTeam2 = finalists.semifinalTeam2!;
@@ -162,19 +297,20 @@ export default function FinalsScreen({
       finalists.finalist1 &&
       finalists.finalist2
     ) {
-      // Direct to finals after semifinals logic
+      // Direct to finals
       return { finalist1: finalists.finalist1, finalist2: finalists.finalist2 };
     }
     if (finalMatch?.id === 1000) {
-      // After semifinal, get winner
-      const topSeed = rankings[0].team;
-      const semifinalWinner = teams.find((t) => t.id === finalMatch.team2)!;
-      return { finalist1: topSeed, finalist2: semifinalWinner };
+      // After semifinal (3-team), get winner
+      // Note: For 4-team, we handle it in useEffect logic above via finalists
+      if (teamCount === 3) {
+        const topSeed = rankings[0].team;
+        const semifinalWinner = teams.find((t) => t.id === finalMatch.team2)!;
+        return { finalist1: topSeed, finalist2: semifinalWinner };
+      }
     }
     return null;
   };
-
-
 
   const finalTeams = getFinalTeams();
   const isShowingFinal = finalMatch?.id === 1000 || (finalTeams && !finalists?.needsSemifinal);
@@ -183,37 +319,11 @@ export default function FinalsScreen({
     <div className="space-y-4">
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-3xl font-bold text-green-700">
-          {finalMatch?.id === 999 ? 'Semifinal & Final' : 'Final'}
+          {finalMatch?.id === 999 ? 'Semifinal & Final' : 'Championship Final'}
         </h1>
       </div>
 
-      {finalMatch?.id === 1000 &&
-        isShowingFinal &&
-        finalists &&
-        !finalists.needsSemifinal &&
-        finalists.finalist1 &&
-        finalists.finalist2 && (
-          <Card className="border-blue-200 bg-blue-50 mb-4">
-            <CardHeader>
-              <CardTitle className="text-base">Why These Teams?</CardTitle>
-            </CardHeader>
-            <CardContent className="text-sm space-y-2">
-              <p>
-                <span className="font-semibold">
-                  {finalists.finalist1.teamName}
-                </span>{' '}
-                - 2 Wins (Advanced with best record)
-              </p>
-              <p>
-                <span className="font-semibold">
-                  {finalists.finalist2.teamName}
-                </span>{' '}
-                - 1 Win (Highest seed among 1-win teams)
-              </p>
-            </CardContent>
-          </Card>
-        )}
-
+      {/* 3-Team Semifinal Scoring UI */}
       {finalMatch?.id === 999 && (
         <Card>
           <CardHeader className="bg-green-50 py-3">

@@ -11,6 +11,7 @@ interface TournamentStandingsProps {
   champion: Team;
   teamCount: number;
   semifinalMatch?: any;
+  semifinalMatches?: Match[];
   finalMatch?: any;
 }
 
@@ -20,6 +21,7 @@ export default function TournamentStandings({
   champion,
   teamCount,
   semifinalMatch,
+  semifinalMatches: propSemifinalMatches,
   finalMatch,
 }: TournamentStandingsProps) {
   const standingsRef = useRef<HTMLDivElement>(null);
@@ -66,7 +68,14 @@ export default function TournamentStandings({
 
   const getMatchesByStage = () => {
     const leagueMatches = matches.filter(m => m.finished);
-    const semifinalMatches = semifinalMatch && semifinalMatch.finished ? [semifinalMatch] : [];
+    let semifinalMatches: Match[] = [];
+
+    if (propSemifinalMatches && propSemifinalMatches.length > 0) {
+      semifinalMatches = propSemifinalMatches.filter(m => m.finished);
+    } else if (semifinalMatch && semifinalMatch.finished) {
+      semifinalMatches = [semifinalMatch];
+    }
+
     const finalMatches = finalMatch && finalMatch.finished ? [finalMatch] : [];
 
     return { leagueMatches, semifinalMatches, finalMatches };
