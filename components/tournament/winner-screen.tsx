@@ -9,6 +9,7 @@ import { useState } from 'react';
 interface WinnerScreenProps {
   champion: Team;
   onReset: () => void;
+  onAddTeam: () => void;
   teams: Team[];
   matches: Match[];
   teamCount: number;
@@ -20,6 +21,7 @@ interface WinnerScreenProps {
 export default function WinnerScreen({
   champion,
   onReset,
+  onAddTeam,
   teams,
   matches,
   teamCount,
@@ -132,7 +134,14 @@ export default function WinnerScreen({
                 onClick={onReset}
                 className="w-full bg-green-600 hover:bg-green-700 text-white font-semibold h-12"
               >
-                Start New Tournament
+                Start New Tournament (Same Teams)
+              </Button>
+
+              <Button
+                onClick={onAddTeam}
+                className="w-full bg-orange-600 hover:bg-orange-700 text-white font-semibold h-12"
+              >
+                Add New Team & Restart
               </Button>
             </div>
           </div>
@@ -161,7 +170,14 @@ export default function WinnerScreen({
             onClick={onReset}
             className="w-full bg-green-600 hover:bg-green-700 text-white font-semibold h-12"
           >
-            Start New Tournament
+            Start New Tournament (Same Teams)
+          </Button>
+
+          <Button
+            onClick={onAddTeam}
+            className="w-full bg-orange-600 hover:bg-orange-700 text-white font-semibold h-12"
+          >
+            Add New Team & Restart
           </Button>
         </div>
       )}

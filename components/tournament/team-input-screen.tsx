@@ -10,23 +10,27 @@ interface TeamInputScreenProps {
   teamCount: number;
   onSubmit: (teams: Team[]) => void;
   onBack: () => void;
+  initialTeams?: Team[];
 }
 
-export default function TeamInputScreen({ teamCount, onSubmit, onBack }: TeamInputScreenProps) {
+export default function TeamInputScreen({ teamCount, onSubmit, onBack, initialTeams = [] }: TeamInputScreenProps) {
   const teamIds = Array.from({ length: teamCount }, (_, i) =>
     String.fromCharCode(65 + i)
   );
 
   const [teamData, setTeamData] = useState<Record<string, Team>>(
     teamIds.reduce(
-      (acc, id) => ({
-        ...acc,
-        [id]: {
-          id,
-          teamName: '',
-          players: ['', ''],
-        },
-      }),
+      (acc, id, index) => {
+        const existingTeam = initialTeams[index];
+        return {
+          ...acc,
+          [id]: {
+            id,
+            teamName: existingTeam?.teamName || '',
+            players: existingTeam ? [...existingTeam.players] : ['', ''],
+          },
+        };
+      },
       {}
     )
   );

@@ -380,6 +380,27 @@ export default function Home() {
     setMatchFormat(null);
   };
 
+  const handleRestartSameTeams = () => {
+    // Regenerate matches with the same teams
+    const generatedMatches = generateRoundRobinMatches(teams);
+    setMatches(generatedMatches);
+
+    // Reset tournament state
+    setMiniGames([]);
+    setSemifinalMatch(null);
+    setSemifinalMatches([]);
+    setFinalMatch(null);
+    setChampion(null);
+
+    // Go directly to match scoring
+    setScreen('matchScoring');
+  };
+
+  const handleAddTeam = () => {
+    setTeamCount(teams.length + 1);
+    setScreen('teamInput');
+  };
+
   return (
     <main className="min-h-screen bg-gradient-to-br from-green-50 to-emerald-50 p-4 sm:p-6 lg:p-8">
       <div className="mx-auto max-w-4xl">
@@ -395,6 +416,7 @@ export default function Home() {
         {screen === 'teamInput' && (
           <TeamInputScreen
             teamCount={teamCount}
+            initialTeams={teams}
             onSubmit={handleTeamsSubmit}
             onBack={() => {
               if (teamCount === 2) {
@@ -544,7 +566,8 @@ export default function Home() {
         {screen === 'winner' && champion && (
           <WinnerScreen
             champion={champion}
-            onReset={handleReset}
+            onReset={handleRestartSameTeams}
+            onAddTeam={handleAddTeam}
             teams={teams}
             matches={matches}
             teamCount={teamCount}
