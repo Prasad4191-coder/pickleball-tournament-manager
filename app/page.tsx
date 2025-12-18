@@ -6,6 +6,7 @@ import TeamInputScreen from '@/components/tournament/team-input-screen';
 import MatchScoringScreen from '@/components/tournament/match-scoring-screen';
 import FinalsScreen from '@/components/tournament/finals-screen';
 import WinnerScreen from '@/components/tournament/winner-screen';
+import HistoryScreen, { TournamentHistoryItem } from '@/components/tournament/history-screen';
 import MiniGameScorer from '@/components/tournament/mini-game-scorer';
 import FormatSelectionScreen from '@/components/tournament/format-selection-screen';
 import { Button } from '@/components/ui/button';
@@ -70,7 +71,9 @@ type Screen =
   | 'matchScoring'
   | 'miniGames'
   | 'finals'
-  | 'winner';
+  | 'finals'
+  | 'winner'
+  | 'history';
 
 export default function Home() {
   const [screen, setScreen] = useState<Screen>('teamSelection');
@@ -83,6 +86,7 @@ export default function Home() {
   const [finalMatch, setFinalMatch] = useState<FinalMatch | null>(null);
   const [champion, setChampion] = useState<Team | null>(null);
   const [matchFormat, setMatchFormat] = useState<MatchFormat>(null);
+  const [history, setHistory] = useState<TournamentHistoryItem[]>([]);
 
   const handleTeamCountSelect = (count: number) => {
     setTeamCount(count);
@@ -367,7 +371,29 @@ export default function Home() {
     setScreen('winner');
   };
 
+  const saveToHistory = () => {
+    if (champion && teams.length > 0) {
+      const standings = getRankings().map((r) => ({
+        teamId: r.team.id,
+        wins: r.wins,
+        pointDiff: r.pointDiff,
+      }));
+
+      const historyItem: TournamentHistoryItem = {
+        id: Date.now().toString(),
+        date: new Date().toISOString(),
+        champion,
+        teams,
+        matches,
+        standings,
+      };
+
+      setHistory((prev) => [...prev, historyItem]);
+    }
+  };
+
   const handleReset = () => {
+    saveToHistory();
     setScreen('teamSelection');
     setTeamCount(0);
     setTeams([]);
@@ -381,6 +407,7 @@ export default function Home() {
   };
 
   const handleRestartSameTeams = () => {
+    saveToHistory();
     // Regenerate matches with the same teams
     const generatedMatches = generateRoundRobinMatches(teams);
     setMatches(generatedMatches);
@@ -396,7 +423,78 @@ export default function Home() {
     setScreen('matchScoring');
   };
 
+  const handleShuffleTeams = () => {
+    saveToHistory();
+    // 1. Extract all players
+    const allPlayers: string[] = [];
+    teams.forEach((t) => {
+      allPlayers.push(t.players[0]);
+      allPlayers.push(t.players[1]);
+    });
+
+    // 2. Helper to check if a pair existed in the previous team set
+    const hasPlayedTogether = (p1: string, p2: string, currentTeams: Team[]) => {
+      return currentTeams.some(
+        (t) =>
+          (t.players[0] === p1 && t.players[1] === p2) ||
+          (t.players[0] === p2 && t.players[1] === p1)
+      );
+    };
+
+    // 3. Shuffle with retry logic to avoid previous pairings
+    let shuffledPlayers = [...allPlayers];
+    let attempts = 0;
+    let validShuffle = false;
+
+    while (attempts < 100 && !validShuffle) {
+      // Fisher-Yates shuffle
+      for (let i = shuffledPlayers.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [shuffledPlayers[i], shuffledPlayers[j]] = [shuffledPlayers[j], shuffledPlayers[i]];
+      }
+
+      // Check if any pair is invalid
+      let conflictFound = false;
+      for (let i = 0; i < shuffledPlayers.length; i += 2) {
+        if (hasPlayedTogether(shuffledPlayers[i], shuffledPlayers[i + 1], teams)) {
+          conflictFound = true;
+          break;
+        }
+      }
+
+      if (!conflictFound) {
+        validShuffle = true;
+      }
+      attempts++;
+    }
+
+    // 4. Create new teams
+    const newTeams: Team[] = [];
+    for (let i = 0; i < shuffledPlayers.length; i += 2) {
+      const teamId = String.fromCharCode(65 + i / 2); // A, B, C...
+      newTeams.push({
+        id: teamId,
+        teamName: `Team ${teamId}`, // Generic name
+        players: [shuffledPlayers[i], shuffledPlayers[i + 1]],
+      });
+    }
+
+    setTeams(newTeams);
+
+    // 5. Reset tournament state
+    setMatches([]);
+    setMiniGames([]);
+    setSemifinalMatch(null);
+    setSemifinalMatches([]);
+    setFinalMatch(null);
+    setChampion(null);
+
+    // 6. Go to team input for review
+    setScreen('teamInput');
+  };
+
   const handleAddTeam = () => {
+    saveToHistory();
     setTeamCount(teams.length + 1);
     setScreen('teamInput');
   };
@@ -405,7 +503,10 @@ export default function Home() {
     <main className="min-h-screen bg-gradient-to-br from-green-50 to-emerald-50 p-4 sm:p-6 lg:p-8">
       <div className="mx-auto max-w-4xl">
         {screen === 'teamSelection' && (
-          <TeamSelectionScreen onSelectTeamCount={handleTeamCountSelect} />
+          <TeamSelectionScreen
+            onSelectTeamCount={handleTeamCountSelect}
+            onViewHistory={() => setScreen('history')}
+          />
         )}
         {screen === 'formatSelection' && (
           <FormatSelectionScreen
@@ -568,12 +669,19 @@ export default function Home() {
             champion={champion}
             onReset={handleRestartSameTeams}
             onAddTeam={handleAddTeam}
+            onShuffleTeams={handleShuffleTeams}
             teams={teams}
             matches={matches}
             teamCount={teamCount}
             semifinalMatch={semifinalMatch}
             semifinalMatches={semifinalMatches}
             finalMatch={finalMatch}
+          />
+        )}
+        {screen === 'history' && (
+          <HistoryScreen
+            history={history}
+            onBack={() => setScreen('teamSelection')}
           />
         )}
       </div>

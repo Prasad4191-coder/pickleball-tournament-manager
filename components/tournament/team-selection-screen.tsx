@@ -5,9 +5,13 @@ import { Button } from '@/components/ui/button';
 
 interface TeamSelectionScreenProps {
   onSelectTeamCount: (count: number) => void;
+  onViewHistory: () => void;
 }
 
-export default function TeamSelectionScreen({ onSelectTeamCount }: TeamSelectionScreenProps) {
+export default function TeamSelectionScreen({
+  onSelectTeamCount,
+  onViewHistory,
+}: TeamSelectionScreenProps) {
   const teamOptions = [2, 3, 4, 5, 6, 7, 8, 9, 10];
 
   return (
@@ -31,6 +35,16 @@ export default function TeamSelectionScreen({ onSelectTeamCount }: TeamSelection
                 {count}
               </Button>
             ))}
+          </div>
+
+          <div className="mt-6">
+            <Button
+              variant="outline"
+              onClick={onViewHistory}
+              className="w-full text-green-700 border-green-200 hover:bg-green-50"
+            >
+              View Tournament History
+            </Button>
           </div>
         </CardContent>
       </Card>

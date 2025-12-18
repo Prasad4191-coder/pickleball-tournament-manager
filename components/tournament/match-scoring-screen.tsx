@@ -114,19 +114,17 @@ export default function MatchScoringScreen({
                   return (
                     <div
                       key={ranking.team.id}
-                      className={`flex flex-col p-3 rounded-lg ${
-                        isEliminated
+                      className={`flex flex-col p-3 rounded-lg ${isEliminated
                           ? 'bg-gray-200 opacity-60'
                           : index === 0
-                          ? 'bg-yellow-100'
-                          : 'bg-white'
-                      }`}
+                            ? 'bg-yellow-100'
+                            : 'bg-white'
+                        }`}
                     >
                       <div className="flex items-center justify-between">
                         <p
-                          className={`font-semibold ${
-                            isEliminated ? 'text-gray-500 line-through' : 'text-gray-800'
-                          }`}
+                          className={`font-semibold ${isEliminated ? 'text-gray-500 line-through' : 'text-gray-800'
+                            }`}
                         >
                           {index + 1}. {ranking.team.teamName}
                         </p>
@@ -239,9 +237,8 @@ export default function MatchScoringScreen({
         {matches.map((match) => (
           <Card
             key={match.id}
-            className={`overflow-hidden transition-opacity ${
-              match.finished ? 'opacity-60' : ''
-            }`}
+            className={`overflow-hidden transition-opacity ${match.finished ? 'opacity-60' : ''
+              }`}
           >
             <CardHeader className="bg-green-50 py-3">
               <CardTitle className="text-base">
@@ -269,7 +266,12 @@ export default function MatchScoringScreen({
                 <div className="space-y-3">
                   <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <label className="text-sm font-medium mb-1 block">{match.team1Name}</label>
+                      <label className="text-sm font-medium mb-1 block">
+                        {match.team1Name}
+                        <span className="block text-xs text-gray-500 font-normal">
+                          {teams.find((t) => t.id === match.team1)?.players.join(' & ')}
+                        </span>
+                      </label>
                       <Input
                         type="number"
                         min="0"
@@ -279,7 +281,12 @@ export default function MatchScoringScreen({
                       />
                     </div>
                     <div>
-                      <label className="text-sm font-medium mb-1 block">{match.team2Name}</label>
+                      <label className="text-sm font-medium mb-1 block">
+                        {match.team2Name}
+                        <span className="block text-xs text-gray-500 font-normal">
+                          {teams.find((t) => t.id === match.team2)?.players.join(' & ')}
+                        </span>
+                      </label>
                       <Input
                         type="number"
                         min="0"

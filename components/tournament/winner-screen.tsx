@@ -10,6 +10,7 @@ interface WinnerScreenProps {
   champion: Team;
   onReset: () => void;
   onAddTeam: () => void;
+  onShuffleTeams: () => void;
   teams: Team[];
   matches: Match[];
   teamCount: number;
@@ -22,6 +23,7 @@ export default function WinnerScreen({
   champion,
   onReset,
   onAddTeam,
+  onShuffleTeams,
   teams,
   matches,
   teamCount,
@@ -143,6 +145,13 @@ export default function WinnerScreen({
               >
                 Add New Team & Restart
               </Button>
+
+              <Button
+                onClick={onShuffleTeams}
+                className="w-full bg-purple-600 hover:bg-purple-700 text-white font-semibold h-12"
+              >
+                Shuffle Players & Restart
+              </Button>
             </div>
           </div>
         </div>
@@ -178,6 +187,13 @@ export default function WinnerScreen({
             className="w-full bg-orange-600 hover:bg-orange-700 text-white font-semibold h-12"
           >
             Add New Team & Restart
+          </Button>
+
+          <Button
+            onClick={onShuffleTeams}
+            className="w-full bg-purple-600 hover:bg-purple-700 text-white font-semibold h-12"
+          >
+            Shuffle Players & Restart
           </Button>
         </div>
       )}
